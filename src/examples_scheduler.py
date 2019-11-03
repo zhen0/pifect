@@ -11,7 +11,7 @@ with open('credentials.yaml') as f:
 @task
 def push_hello(user_id):
     pb = Pushbullet(credentials[user_id]["pushbullet_key"])
-    push = pb.push_note("This is the title", "This is the body")
+    push = pb.push_note("Hey " + user_id + "!", "This is a message for you.")
 
 schedule = IntervalSchedule(interval=timedelta(seconds=60))
 
