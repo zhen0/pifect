@@ -1,2 +1,2 @@
 # pifect
-Doing stuff with pi
+Doing stuff with a raspberry pi.
