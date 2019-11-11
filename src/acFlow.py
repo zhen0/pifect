@@ -10,19 +10,75 @@ from prefect.schedules import CronSchedule
 from prefect.schedules import Schedule
 from prefect.schedules.clocks import IntervalClock
 from prefect.environments.storage import Docker
+import yaml
 
+with open('credentials.yaml') as f:
+    credentials = yaml.safe_load(f)
 
-storage = Docker(
-    base_image="python:3.7",
-    python_dependencies=["requests", "uuid", "pendulum", "timedelta"],
-    registry_url="jenniferheleng",
-    image_name="temp",
-    image_tag="latest",
-)
+kUser = credentials["Jenny"]["kasa"]["userid"]
+kSecret = credentials["Jenny"]["kasa"]["password"]
+kDarkSkiesKey = credentials["Jenny"]["dark_skies"]["key"]
+this_device_id = credentials["Jenny"]["kasa"]["device_id"]
+#storage = Docker(
+#    base_image="python:3.7",
+#    python_dependencies=["requests", "uuid", "pendulum", "timedelta"],
+#    registry_url="jenniferheleng",
+#    image_name="temp",
+#    image_tag="latest",
+#)
 
 @task
-def getTemp(lat, long):
-forecast = 'https://api.darksky.net/forecast/{}/{},{}'.format(apiK, lat, long)
+def getKasaToken(kUser, kSecret):
+    payload = {
+            "method": "login",
+            "params": {
+                "appType": "Kasa_Android",
+                "cloudUserName": kUser,
+                "cloudPassword": kSecret,
+                "terminalUUID": str(uuid.uuid4())
+            }
+    }
+    response = requests.post(url="https://wap.tplinkcloud.com/", json=payload)
+
+    obj = response.json()
+    print('obj', obj)
+    token = obj["result"]["token"]
+    print(token)
+    return token
+
+@task
+def getKasaDeviceList(token):
+    payload = {"method": "getDeviceList"}
+    device_list = requests.post("https://wap.tplinkcloud.com?token={}".format(token), json=payload)
+        # print("id", response2.json()['result']['deviceList'][0])
+    deviceID = device_list.json()['result']['deviceList'] # [0]['deviceId']
+
+@task
+def modifyKasaDeviceState(token, deviceID, deviceState):
+    payload = {
+            "method": "passthrough",
+            "params": {
+                "deviceId": deviceID,
+                "requestData":
+                "{\"system\":{\"set_relay_state\":{\"state\":0}}}"
+            }
+        }
+    response = requests.post(url="https://use1-wap.tplinkcloud.com/?token={" + str(deviceState) + "}".format(token), json=payload3)
+    print(response.json())
+
+@task
+def targetACState(temp, minTemp, maxTemp):
+    if temp <= maxTemp:
+        #raise signals.SUCCESS(message='turning off!')
+        return 0
+    elif temp > maxTemp:
+        #raise signals.SKIP(message='skipping!')
+        return 1
+
+
+@task
+def getTemp(lat, long, apiK):
+    forecast = 'https://api.darksky.net/forecast/{}/{},{}'.format(apiK, lat, long)
     data = requests.get(url=forecast)
     json_response = data.json()
     u = json_response[u'hourly'][u'data']
@@ -30,108 +86,22 @@ forecast = 'https://api.darksky.net/forecast/{}/{},{}'.format(apiK, lat, long)
     print("temp", temp)
     return temp
 
+#schedule = Schedule(clocks=[IntervalClock(timedelta(minutes=2))])
+#chedule.next(1)
+#simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
+daily_schedule = CronSchedule("* * * * *")
 
-@task
-def ACoff(temp, maxTemp):
-    if temp <= maxTemp:
-        raise signals.SUCCESS(message='turning off!')
-        payload = {
-            "method": "login",
-            "params": {
-                "appType": "Kasa_Android",
-                "cloudUserName": kUser,
-                "cloudPassword": kSecret,
-                "terminalUUID": str(uuid.uuid4())
-            }
-        }
-
-        response = requests.post(url="https://wap.tplinkcloud.com/",
-                                 json=payload)
-
-        obj = response.json()
-        print('obj', obj)
-        token = obj["result"]["token"]
-        print(token)
-
-        payload = {"method": "getDeviceList"}
-        response2 = requests.post(
-            "https://wap.tplinkcloud.com?token={}".format(token), json=payload)
-        # print("id", response2.json()['result']['deviceList'][0])
-        deviceID = response2.json()['result']['deviceList'][0]['deviceId']
-
-        payload3 = {
-            "method": "passthrough",
-            "params": {
-                "deviceId": deviceID,
-                "requestData":
-                "{\"system\":{\"set_relay_state\":{\"state\":0}}}"
-            }
-        }
-        response3 = requests.post(
-            url="https://use1-wap.tplinkcloud.com/?token={0}".format(token),
-            json=payload3)
-
-        print(response3.json())
-
-    elif temp > maxTemp:
-        raise signals.SKIP(message='skipping!')
-
-@task
-def ACon(temp, minTemp):
-    if temp >= minTemp:
-        raise signals.SUCCESS(message='turning on!')
-        payload = {
-            "method": "login",
-            "params": {
-                "appType": "Kasa_Android",
-                "cloudUserName": kUser,
-                "cloudPassword": kSecret,
-                "terminalUUID": str(uuid.uuid4())
-            }
-        }
-
-        response = requests.post(url="https://wap.tplinkcloud.com/",
-                                 json=payload)
-
-        obj = response.json()
-        print('obj', obj)
-        token = obj["result"]["token"]
-        print(token)
-
-        payload = {"method": "getDeviceList"}
-        response2 = requests.post(
-            "https://wap.tplinkcloud.com?token={}".format(token), json=payload)
-        # print("id", response2.json()['result']['deviceList'][0])
-        deviceID = response2.json()['result']['deviceList'][0]['deviceId']
-
-        payload3 = {
-            "method": "passthrough",
-            "params": {
-                "deviceId": deviceID,
-                "requestData":
-                "{\"system\":{\"set_relay_state\":{\"state\":0}}}"
-            }
-        }
-        response3 = requests.post(
-            url="https://use1-wap.tplinkcloud.com/?token={1}".format(token),
-            json=payload3)
-
-        print(response3.json())
-
-    elif temp < minTemp:
-        raise signals.SKIP(message='skipping!')
+with Flow(daily_schedule) as flow:
+    local_temp        = getTemp(40.7135, -73.9859, kDarkSkiesKey)
+    target_ac_state   = targetACState(local_temp, 80, 90)
+    local_token       = getKasaToken(kUser, kSecret)
+    local_device_list = getKasaDeviceList(local_token)
+    #this_device_id    = local_device_list[0]['deviceId']
+    # Finally, modify target state.
+    # Perhaps should check if  different first.
+    modifyKasaDeviceState(local_token, this_device_id, target_ac_state)
 
 
-schedule = Schedule(clocks=[IntervalClock(timedelta(minutes=2))])
-schedule.next(1)
-simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
-daily_schedule = CronSchedule("38 1 * * *")
-
-with Flow('Nov10', simpleSchedule) as flow:
-    temp1 = getTemp(40.7135, -73.9859)
-    # temp2 = getTemp(23.401711, -90.750069)
-    ACoff(temp1, 80)
-    ACon(temp1, 90)
-# flow.run()
-flow.storage = storage
-flow.deploy(project_name="Temp")
+flow.run()
+#flow.storage = storage
+#flow.deploy(project_name="Temp")
