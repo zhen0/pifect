@@ -41,9 +41,7 @@ def getKasaToken(kUser, kSecret):
     response = requests.post(url="https://wap.tplinkcloud.com/", json=payload)
 
     obj = response.json()
-    print('obj', obj)
     token = obj["result"]["token"]
-    print(token)
     return token
 
 @task
@@ -52,6 +50,8 @@ def getKasaDeviceList(token):
     device_list = requests.post("https://wap.tplinkcloud.com?token={}".format(token), json=payload)
         # print("id", response2.json()['result']['deviceList'][0])
     deviceID = device_list.json()['result']['deviceList'] # [0]['deviceId']
+    #print(deviceID[0]['deviceId'])
+    return(deviceID)
 
 @task
 def modifyKasaDeviceState(token, deviceID, deviceState):
@@ -60,11 +60,11 @@ def modifyKasaDeviceState(token, deviceID, deviceState):
             "params": {
                 "deviceId": deviceID,
                 "requestData":
-                "{\"system\":{\"set_relay_state\":{\"state\":0}}}"
+                    '{\"system\":{\"set_relay_state\":{\"state\":' + str(deviceState) + '}}}'
             }
         }
-    response = requests.post(url="https://use1-wap.tplinkcloud.com/?token={" + str(deviceState) + "}".format(token), json=payload3)
-    print(response.json())
+    response = requests.post(url="https://use1-wap.tplinkcloud.com/?token={}".format(token), json=payload)
+    #print(response.json())
 
 @task
 def targetACState(temp, minTemp, maxTemp):
@@ -83,7 +83,7 @@ def getTemp(lat, long, apiK):
     json_response = data.json()
     u = json_response[u'hourly'][u'data']
     temp = u[0][u'temperature']
-    print("temp", temp)
+    #print("temp", temp)
     return temp
 
 #schedule = Schedule(clocks=[IntervalClock(timedelta(minutes=2))])
@@ -93,13 +93,13 @@ daily_schedule = CronSchedule("* * * * *")
 
 with Flow(daily_schedule) as flow:
     local_temp        = getTemp(40.7135, -73.9859, kDarkSkiesKey)
-    target_ac_state   = targetACState(local_temp, 80, 90)
+    target_state      = targetACState(local_temp, 80, 90)
     local_token       = getKasaToken(kUser, kSecret)
     local_device_list = getKasaDeviceList(local_token)
-    #this_device_id    = local_device_list[0]['deviceId']
+    this_device_id    = local_device_list[0]['deviceId'] # Basically, we only have one device..
     # Finally, modify target state.
     # Perhaps should check if  different first.
-    modifyKasaDeviceState(local_token, this_device_id, target_ac_state)
+    modifyKasaDeviceState(local_token, this_device_id, target_state)
 
 
 flow.run()
