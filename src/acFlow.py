@@ -80,7 +80,7 @@ def getTemp(lat, long, apiK):
     return temp
 
 
-simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
+simpleSchedule = IntervalSchedule(interval=timedelta(hours=1))
 
 
 with Flow(simpleSchedule) as flow:
@@ -95,6 +95,6 @@ with Flow(simpleSchedule) as flow:
     modifyKasaDeviceState(local_token, this_device_id, target_state)
 
 
-# flow.run()
+flow.run()
 #flow.storage = storage
-flow.deploy(project_name="Temp")
+#flow.deploy(project_name="Temp")
