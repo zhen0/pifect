@@ -11,7 +11,6 @@ with open('credentials.yaml') as f:
 kUser = credentials["Jenny"]["kasa"]["userid"]
 kSecret = credentials["Jenny"]["kasa"]["password"]
 kDarkSkiesKey = credentials["Jenny"]["dark_skies"]["key"]
-this_device_id = credentials["Jenny"]["kasa"]["device_id"]
 
 
 @task
