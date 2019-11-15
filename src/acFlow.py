@@ -83,7 +83,7 @@ def getTemp(lat, long, apiK):
 simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
 
 
-with Flow(simpleSchedule) as flow:
+with Flow("TempTry") as flow:
     local_temp = getTemp(40.7135, -73.9859, kDarkSkiesKey)
     target_state = targetACState(local_temp, 80, 90)
     local_token = getKasaToken(kUser, kSecret)
