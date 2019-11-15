@@ -110,3 +110,5 @@ def try():
 
 
 f = Flow("UDTry", tasks=[try])
+f.deploy("Temp")
+f.run_agent()
