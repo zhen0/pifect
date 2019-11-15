@@ -13,7 +13,7 @@ kSecret = credentials["Jenny"]["kasa"]["password"]
 kDarkSkiesKey = credentials["Jenny"]["dark_skies"]["key"]
 
 
-@task
+@task(name="token", slug="token")
 def getKasaToken(kUser, kSecret):
     payload = {
         "method": "login",
@@ -31,7 +31,7 @@ def getKasaToken(kUser, kSecret):
     return token
 
 
-@task
+@task(name="device", slug="device")
 def getKasaDeviceList(token):
     payload = {"method": "getDeviceList"}
     device_list = requests.post(
@@ -42,7 +42,7 @@ def getKasaDeviceList(token):
     return(deviceID)
 
 
-@task
+@task(name="modify", slug="modify")
 def modifyKasaDeviceState(token, deviceID, deviceState):
     payload = {
         "method": "passthrough",
@@ -58,7 +58,7 @@ def modifyKasaDeviceState(token, deviceID, deviceState):
     # print(response.json())
 
 
-@task
+@task(name="target", slug="target")
 def targetACState(temp, minTemp, maxTemp):
     if temp <= maxTemp:
         #raise signals.SUCCESS(message='turning off!')
@@ -68,7 +68,7 @@ def targetACState(temp, minTemp, maxTemp):
         return 1
 
 
-@task
+@task(name="getTemp", slug="getTemp")
 def getTemp(lat, long, apiK):
     forecast = 'https://api.darksky.net/forecast/{}/{},{}'.format(
         apiK, lat, long)
