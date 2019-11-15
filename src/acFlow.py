@@ -80,7 +80,7 @@ def getTemp(lat, long, apiK):
     return temp
 
 
-simpleSchedule = IntervalSchedule(interval=timedelta(minutes="30"))
+simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
 
 
 with Flow(simpleSchedule) as flow:
