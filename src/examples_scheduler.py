@@ -14,10 +14,11 @@ def push_hello(user_id, message):
     pb = Pushbullet(credentials[user_id]["pushbullet_key"])
     push = pb.push_note("Hey " + user_id + "!", message)
 
-schedule = IntervalSchedule(interval=timedelta(seconds=60))
+# schedule = IntervalSchedule(interval=timedelta(seconds=60))
 
-with Flow("Hello", schedule) as flow:
+with Flow("Hello") as flow:
     push_hello("Dan", "The time here is " + datetime.datetime.now())
 
-flow.run()
+flow.deploy(project_name="Play")
+flow.run_agent()
 

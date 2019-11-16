@@ -80,10 +80,10 @@ def getTemp(lat, long, apiK):
     return temp
 
 
-simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
+# simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
 
 
-with Flow("TempTry", simpleSchedule) as flow:
+with Flow("TempTry2") as flow:
     local_temp = getTemp(40.7135, -73.9859, kDarkSkiesKey)
     target_state = targetACState(local_temp, 80, 90)
     local_token = getKasaToken(kUser, kSecret)
@@ -95,10 +95,12 @@ with Flow("TempTry", simpleSchedule) as flow:
     modifyKasaDeviceState(local_token, this_device_id, target_state)
 
 
-flow.run()
+# flow.run()
 # flow.storage = storage
+
 flow.deploy(project_name="Temp")
 flow.run_agent()
+
 # @task(name="try1", slug="try1")
 # def trial():
 #     if 1 > 2:
