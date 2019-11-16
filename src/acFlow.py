@@ -36,7 +36,7 @@ def getKasaDeviceList(token):
     payload = {"method": "getDeviceList"}
     device_list = requests.post(
         "https://wap.tplinkcloud.com?token={}".format(token), json=payload)
-    print("id", response2.json()['result']['deviceList'][0])
+    print("id", device_list)
     deviceID = device_list.json()['result']['deviceList']  # [0]['deviceId']
     print(deviceID[0]['deviceId'])
     return(deviceID)
@@ -83,7 +83,7 @@ def getTemp(lat, long, apiK):
 simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
 
 
-with Flow("TempTry", simpleSchedule) as flow:
+with Flow("TempTry") as flow:
     local_temp = getTemp(40.7135, -73.9859, kDarkSkiesKey)
     target_state = targetACState(local_temp, 80, 90)
     local_token = getKasaToken(kUser, kSecret)
@@ -95,7 +95,7 @@ with Flow("TempTry", simpleSchedule) as flow:
     modifyKasaDeviceState(local_token, this_device_id, target_state)
 
 
-flow.run()
+#flow.run()
 # flow.storage = storage
 flow.deploy(project_name="Temp")
 flow.run_agent()
