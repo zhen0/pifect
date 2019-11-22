@@ -1,16 +1,20 @@
-from prefect import task, Flow
+from prefect import task, Flow, Parameter
 import requests
+from prefect.engine import signals
+from prefect.engine.state import Success, Failed, Skipped
 import uuid
 from datetime import timedelta
 from prefect.schedules import IntervalSchedule
 import yaml
+from prefect.utilities.notifications import slack_notifier
+from prefect.tasks.secrets import Secret
 
-with open('credentials.yaml') as f:
-    credentials = yaml.safe_load(f)
+DarkSkiesKey = Secret("Dark")
+kUser = Secret("kasaUser"),
+kSecret = Secret("kasaSecret")
 
-kUser = credentials["Jenny"]["kasa"]["userid"]
-kSecret = credentials["Jenny"]["kasa"]["password"]
-kDarkSkiesKey = credentials["Jenny"]["dark_skies"]["key"]
+
+handler = slack_notifier(only_states=[Success])
 
 
 @task(name="token", slug="token")
@@ -38,11 +42,11 @@ def getKasaDeviceList(token):
         "https://wap.tplinkcloud.com?token={}".format(token), json=payload)
     print("id", device_list)
     deviceID = device_list.json()['result']['deviceList']  # [0]['deviceId']
-    print(deviceID[0]['deviceId'])
+    # print(deviceID[0]['deviceId'])
     return(deviceID)
 
 
-@task(name="modify", slug="modify")
+@task(name="modify", slug="modify", state_handlers=[handler])
 def modifyKasaDeviceState(token, deviceID, deviceState):
     payload = {
         "method": "passthrough",
@@ -58,13 +62,11 @@ def modifyKasaDeviceState(token, deviceID, deviceState):
     print(response.json())
 
 
-@task(name="target", slug="target")
-def targetACState(temp, minTemp, maxTemp):
-    if temp <= maxTemp:
-        #raise signals.SUCCESS(message='turning off!')
+@task(name="target", slug="target", state_handlers=[handler])
+def targetACState(local_temp, maxTemp):
+    if local_temp <= maxTemp:
         return 0
-    elif temp > maxTemp:
-        #raise signals.SKIP(message='skipping!')
+    elif local_temp > maxTemp:
         return 1
 
 
@@ -82,9 +84,10 @@ def getTemp(lat, long, apiK):
 
 # simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
 
-with Flow("TempTry") as flow:
-    local_temp = getTemp(40.7135, -73.9859, kDarkSkiesKey)
-    target_state = targetACState(local_temp, 80, 90)
+with Flow("TempNov") as flow:
+    maxtemp = Parameter('maxtemp', default=90)
+    local_temp = getTemp(40.7135, -73.9859, DarkSkiesKey)
+    target_state = targetACState(local_temp, maxtemp)
     local_token = getKasaToken(kUser, kSecret)
     local_device_list = getKasaDeviceList(local_token)
     # Basically, we only have one device..
@@ -94,9 +97,9 @@ with Flow("TempTry") as flow:
     modifyKasaDeviceState(local_token, this_device_id, target_state)
 
 
+# 
 # flow.run()
-flow.deploy(project_name="Temp")
-flow.run_agent()
+flow.deploy(project_name="Jenny")
 
 # @task(name="try1", slug="try1")
 # def trial():
