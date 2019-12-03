@@ -1,4 +1,7 @@
-#
+# @author Daniel Egan
+# Twitter bot auto-posting content.
+# Uses Prefect, GoogleSheets, Twitter, and Pushbullet APIs.
+# Use at your own risk.
 import os
 import pandas as pd
 import yaml
