@@ -11,28 +11,36 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 # Twitter
 import twitter
-stream = open(os.path.join('/', 'Users', 'danielegan', 'src', 'degan_creds.yaml'), 'r')
-creds = yaml.safe_load(stream)
-twitter_creds = creds['twitter']
-api = twitter.Api(consumer_key        = twitter_creds['consumer_key'],
-                  consumer_secret     = twitter_creds['consumer_secret'],
-                  access_token_key    = twitter_creds['access_token'],
-                  access_token_secret = twitter_creds['access_token_secret'])
+# Prefect
+from prefect import task, Flow, Task
+from prefect.schedules import IntervalSchedule
 # Pushbullet
 from pushbullet import Pushbullet
-pb = Pushbullet(creds['pushbullet']['token'])
 
-# Prefect
-from prefect import task, Flow
-from prefect.schedules import IntervalSchedule
+
+@task(name= "load_creds", slug = "load_creds")
+def load_creds(local_yaml_file):
+    creds = yaml.safe_load(open(local_yaml_file, 'r'))
+    return creds
+
+@task(name= "twitter_auth", slug = "twitter_auth")
+def twitterAuth(creds):
+    twitter_creds = creds['twitter']
+    api = twitter.Api(consumer_key        = twitter_creds['consumer_key'],
+                      consumer_secret     = twitter_creds['consumer_secret'],
+                      access_token_key    = twitter_creds['access_token'],
+                      access_token_secret = twitter_creds['access_token_secret'])
 
 
 
 # Autheticate
-kLocalPath = os.path.join('/','Users','danielegan','src','pifect','src', 'tweetbot')
-scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name(os.path.join(kLocalPath, 'client_secrets.json'), scope)
-client = gspread.authorize(creds)
+@task(name= "gsheets_auth", slug = "gsheets_auth")
+def gsheetsAuth():
+    kLocalPath = os.path.join('/','Users','danielegan','src','pifect','src', 'tweetbot')
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(os.path.join(kLocalPath, 'client_secrets.json'), scope)
+    client = gspread.authorize(creds)
+    return client
 
 
 @task(name="getsheet", slug="getsheet")
@@ -68,19 +76,36 @@ def sendTweet(new_post):
         status = api.PostUpdate(new_post)
     return status.text
 
-@task(name="updatePostQueue", slug="updatePostQueue")
+# @task (name="handler", slug="handler")
+def sendPushBulletUpdate(task, old_state, new_state):
+    if new_state.is_finished():
+        msg = "Task {0} finished in state {1}".format(task, new_state)
+    pb = Pushbullet()
+    pb.push_note('Flow', msg)
+    return new_state
+
+@task(name="updatePostQueue", slug="updatePostQueue", state_handlers=[sendPushBulletUpdate])
 def updatePostQueue(workSheet, post_index):
     today = date.today()
     workSheet.update_cell(post_index, 3, today.strftime("%Y/%m/%d"))
 
 
-@task(name="sendPushBulletUpdate", slug="sendPushBulletUpdate")
-def sendPushBulletUpdate(title, message):
-    status = pb.push_note(title, message)
-    return status
+# @task(name="sendPushBulletUpdate", slug="sendPushBulletUpdate")
+# def sendPushBulletUpdate(title, message):
+#     status = pb.push_note(title, message)
+#     return status
+
+# @task
 
 
-with Flow("Run BeFiWins") as flow:
+
+credentials_file = os.path.join('credentials.yaml')
+t = Task(state_handlers=[sendPushBulletUpdate])
+with Flow(name="Run BeFiWins", tasks=[t]) as flow:
+    creds               = load_creds(credentials_file)
+    # pb_auth_res         = pushbullAuth(creds)
+    tw_auth_res         = twitterAuth(credentials_file)
+    gs_auth_res         = gsheetsAuth()
     sheet               = getSheet("Twitter Posts", "BeFiWins")
     posts               = convertSheetToPD(sheet)
     post_index          = getNewPostIndex(posts)
@@ -88,6 +113,6 @@ with Flow("Run BeFiWins") as flow:
     send_result         = sendTweet(new_post)
     update_sheet_result = updatePostQueue(sheet, post_index)
     update_message = flow.name + " ran: "
-    send_PB_update      = sendPushBulletUpdate(update_message, send_result)
+    # send_PB_update      = sendPushBulletUpdate()
 
 flow.run()
