@@ -99,7 +99,7 @@ with Flow("TempNov") as flow:
 
 # 
 # flow.run()
-flow.deploy(project_name="Jenny")
+flow.deploy(project_name="Temp")
 
 # @task(name="try1", slug="try1")
 # def trial():
