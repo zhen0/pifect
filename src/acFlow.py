@@ -6,15 +6,15 @@ import uuid
 from datetime import timedelta
 from prefect.schedules import IntervalSchedule
 import yaml
-from prefect.utilities.notifications import slack_notifier
+from prefect.utilities.notifications import jira_notifier
 from prefect.tasks.secrets import Secret
 
-DarkSkiesKey = Secret("Dark")
-kUser = Secret("kasaUser"),
-kSecret = Secret("kasaSecret")
+DarkSkiesKey = Secret("DARK")
+kUser = Secret("KASAUSER"),
+kSecret = Secret("KASASECRET")
 
 
-handler = slack_notifier(only_states=[Success])
+handler = jira_notifier(only_states=[Success])
 
 
 @task(name="token", slug="token")
@@ -98,8 +98,8 @@ with Flow("TempNov") as flow:
 
 
 # 
-# flow.run()
-flow.deploy(project_name="Temp")
+flow.run()
+# flow.deploy(project_name="Temp")
 
 # @task(name="try1", slug="try1")
 # def trial():
