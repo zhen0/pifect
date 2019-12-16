@@ -17,6 +17,7 @@ kSecret = Secret("KASASECRET")
 handler = jira_notifier(only_states=[Success])
 
 
+
 @task(name="token", slug="token")
 def getKasaToken(kUser, kSecret):
     payload = {
@@ -40,7 +41,7 @@ def getKasaDeviceList(token):
     payload = {"method": "getDeviceList"}
     device_list = requests.post(
         "https://wap.tplinkcloud.com?token={}".format(token), json=payload)
-    print("id", device_list)
+    
     deviceID = device_list.json()['result']['deviceList']  # [0]['deviceId']
     # print(deviceID[0]['deviceId'])
     return(deviceID)
@@ -84,7 +85,7 @@ def getTemp(lat, long, apiK):
 
 # simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
 
-with Flow("TempNov") as flow:
+with Flow("TempAC") as flow:
     maxtemp = Parameter('maxtemp', default=90)
     local_temp = getTemp(40.7135, -73.9859, DarkSkiesKey)
     target_state = targetACState(local_temp, maxtemp)
@@ -99,7 +100,12 @@ with Flow("TempNov") as flow:
 
 # 
 flow.run()
+
+# flow.deploy(project_name="Jenny")
+# flow.visualize()
+
 # flow.deploy(project_name="Temp")
+
 
 # @task(name="try1", slug="try1")
 # def trial():
