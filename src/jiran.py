@@ -15,7 +15,7 @@ def addJiraticket(token, projectName, summaryText, issueType, serverURL):
 
 with Flow('jiraTicket') as fl:
     addJiraticket(jiraToken, 'TEST', "Testing w secrets", 'Task',
-                  'https://testjg.atlassian.net')
+    'https://testjg.atlassian.net')
 
 fl.run()
 # def sendPushBulletOnFail(task, old_state, new_state):
