@@ -5,6 +5,7 @@ import prefect
 from prefect import task, Flow
 
 
+
 @task(name="Welcome", slug="welcome-task")
 def welcome_logger():
     logger = prefect.context["logger"]
@@ -20,12 +21,13 @@ f = Flow("Welcome Flow", tasks=[welcome_logger])
 ## will be able to submit this flow for execution.
 ## At this time, your environment will be automatically labeled with 
 ## the labels ["local", "welcome-flow"]
-f.deploy("test") 
+f.register("Jenny") 
+# f.run()
 
 ## now, we can run an appropriately configured agent for this flow 
 ## immediately in-process; this agent will listen for scheduled work
 ## from Prefect Cloud:
-f.run_agent() # spawns a local agent 
+# f.run_agent() # spawns a local agent 
 
 ## we can also run an agent via CLI in the same way as before:
 ## (local agents will always label themselves "local")

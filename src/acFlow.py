@@ -6,17 +6,17 @@ import uuid
 from datetime import timedelta
 from prefect.schedules import IntervalSchedule
 import yaml
-from prefect.utilities.notifications import jira_notifier
+# from prefect.utilities.notifications import jira_notifier
+from prefect.utilities.notifications.notifications import gmail_notifier
 from prefect.tasks.secrets import Secret
 
-DarkSkiesKey = Secret("DARK")
+DarkSkiesKey = Secret("DARK"),
 kUser = Secret("KASAUSER"),
 kSecret = Secret("KASASECRET")
 
+# handler=jira_notifier(only_states=[Failed], options={'project': 'TEST', 'issuetype': {'name': 'Task'}, 'description': "Is it still working?"}, assignee='jhg.burner')
 
-handler = jira_notifier(only_states=[Success])
-
-
+handler = gmail_notifier(only_states=[Failed])
 
 @task(name="token", slug="token")
 def getKasaToken(kUser, kSecret):
@@ -26,8 +26,8 @@ def getKasaToken(kUser, kSecret):
             "appType": "Kasa_Android",
             "cloudUserName": kUser,
             "cloudPassword": kSecret,
-            "terminalUUID": str(uuid.uuid4())
-        }
+            "terminalUUID": str(uuid.uuid4()),
+        },
     }
     response = requests.post(url="https://wap.tplinkcloud.com/", json=payload)
 
@@ -40,30 +40,32 @@ def getKasaToken(kUser, kSecret):
 def getKasaDeviceList(token):
     payload = {"method": "getDeviceList"}
     device_list = requests.post(
-        "https://wap.tplinkcloud.com?token={}".format(token), json=payload)
-    
-    deviceID = device_list.json()['result']['deviceList']  # [0]['deviceId']
+        "https://wap.tplinkcloud.com?token={}".format(token), json=payload
+    )
+
+    deviceID = device_list.json()["result"]["deviceList"]  # [0]['deviceId']
     # print(deviceID[0]['deviceId'])
-    return(deviceID)
+    return deviceID
 
 
-@task(name="modify", slug="modify", state_handlers=[handler])
+@task(name="modify", slug="modify")
 def modifyKasaDeviceState(token, deviceID, deviceState):
     payload = {
         "method": "passthrough",
         "params": {
             "deviceId": deviceID,
-            "requestData":
-            '{\"system\":{\"set_relay_state\":{\"state\":' +
-                str(deviceState) + '}}}'
-        }
+            "requestData": '{"system":{"set_relay_state":{"state":'
+            + str(deviceState)
+            + "}}}",
+        },
     }
     response = requests.post(
-        url="https://use1-wap.tplinkcloud.com/?token={}".format(token), json=payload)
+        url="https://use1-wap.tplinkcloud.com/?token={}".format(token), json=payload
+    )
     print(response.json())
 
 
-@task(name="target", slug="target", state_handlers=[handler])
+@task(name="target", slug="target")
 def targetACState(local_temp, maxTemp):
     if local_temp <= maxTemp:
         return 0
@@ -73,33 +75,32 @@ def targetACState(local_temp, maxTemp):
 
 @task(name="getTemp", slug="getTemp")
 def getTemp(lat, long, apiK):
-    forecast = 'https://api.darksky.net/forecast/{}/{},{}'.format(
-        apiK, lat, long)
+    forecast = "https://api.darksky.net/forecast/{}/{},{}".format(apiK, lat, long)
     data = requests.get(url=forecast)
     json_response = data.json()
-    u = json_response[u'hourly'][u'data']
-    temp = u[0][u'temperature']
+    u = json_response[u"hourly"][u"data"]
+    temp = u[0][u"temperature"]
     print("temp", temp)
     return temp
 
 
-# simpleSchedule = IntervalSchedule(interval=timedelta(minutes=30))
+# simpleSchedule = IntervalSchedule(interval=timedelta(minutes=120))
 
-with Flow("TempAC") as flow:
-    maxtemp = Parameter('maxtemp', default=90)
+with Flow("TempAC", state_handlers=[handler]) as flow:
+    maxtemp = Parameter("maxtemp", default=90)
     local_temp = getTemp(40.7135, -73.9859, DarkSkiesKey)
     target_state = targetACState(local_temp, maxtemp)
     local_token = getKasaToken(kUser, kSecret)
     local_device_list = getKasaDeviceList(local_token)
     # Basically, we only have one device..
-    this_device_id = local_device_list[0]['deviceId']
+    this_device_id = local_device_list[0]["deviceId"]
     # Finally, modify target state.
     # Perhaps should check if  different first.
     modifyKasaDeviceState(local_token, this_device_id, target_state)
 
 
-# 
 flow.run()
+# flow.register(project_name="Jenny")
 
 # flow.deploy(project_name="Jenny")
 # flow.visualize()
