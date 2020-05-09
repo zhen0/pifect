@@ -5,8 +5,8 @@ from prefect.tasks.airtable.airtable import WriteAirtableRow
 import googlemaps
 from datetime import datetime
 
-airtable_key = 'keyHKEqYHW4scXnKi'
-gmaps_key = 'AIzaSyBjmn3npk07CADF9HEQhyZZR-TJ7p_LemA'
+airtable_key = 
+gmaps_key = 
 
 @task
 def getDrivingDistance(home, destination):
