@@ -1,16 +1,16 @@
-from jira import JIRA
-from prefect import task, Flow, Parameter
+from prefect import task, Flow, Parameter, client
 from prefect.tasks.secrets import PrefectSecret
 from prefect.tasks.airtable.airtable import WriteAirtableRow
 import googlemaps
 from datetime import datetime
 
-airtable_key = 
-gmaps_key = 
+airtable_key = PrefectSecret('AIRTABLE')
+gmaps_key = PrefectSecret('GMAPS')
 
 @task
-def getDrivingDistance(home, destination):
-    gmaps = googlemaps.Client(gmaps_key)
+def getDrivingDistance(home, destination, gmaps):
+    print(gmaps)
+    gmaps = googlemaps.Client(key=gmaps)
     # Geocoding an address
     home_string = home
     home_geocode = gmaps.geocode(home_string)
@@ -31,8 +31,10 @@ putIntoAirTable = WriteAirtableRow()
 with Flow(name='DrivingDistance') as flow:
     home = Parameter('home', default = '530 Grand Street, New York, NY' )
     destination = Parameter('destination', default = '298 Stony Kill Road, Accord, NY')
-    driveTime = getDrivingDistance(home= home, destination = destination)
-    putIntoAirTable(data={'Drive Time':driveTime, 'Name': destination}, base_key = 'appumtumKiwnohjlO', table_name='prospects', api_key=airtable_key)
+    base = Parameter('base', default = 'appaoYy2sMgDlXlgd')
+    table = Parameter('table', default = 'Prospects')
+    driveTime = getDrivingDistance(home= home, destination = destination, gmaps=gmaps_key)
+    putIntoAirTable(data={'Drive Time':driveTime, 'Name': destination}, base_key = base, table_name=table, api_key=airtable_key)
 
 # flow.run() 
 flow.register('Jenny')

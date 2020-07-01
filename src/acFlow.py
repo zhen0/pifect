@@ -99,8 +99,8 @@ with Flow("TempAC", state_handlers=[handler]) as flow:
     modifyKasaDeviceState(local_token, this_device_id, target_state)
 
 
-flow.run()
-# flow.register(project_name="Jenny")
+# flow.run()
+flow.register(project_name="Jenny")
 
 # flow.deploy(project_name="Jenny")
 # flow.visualize()
