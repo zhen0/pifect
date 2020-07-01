@@ -86,7 +86,7 @@ def getTemp(lat, long, apiK):
 
 simpleSchedule = IntervalSchedule(interval=timedelta(minutes=120))
 
-with Flow("TempAC", state_handlers=[handler], schedule=simpleSchedule) as flow:
+with Flow("TempAC", schedule=simpleSchedule) as flow:
     maxtemp = Parameter("maxtemp", default=90)
     local_temp = getTemp(40.7135, -73.9859, DarkSkiesKey)
     target_state = targetACState(local_temp, maxtemp)
