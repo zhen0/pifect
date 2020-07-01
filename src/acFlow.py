@@ -8,11 +8,11 @@ from prefect.schedules import IntervalSchedule
 import yaml
 # from prefect.utilities.notifications import jira_notifier
 from prefect.utilities.notifications.notifications import gmail_notifier
-from prefect.tasks.secrets import Secret
+from prefect.tasks.secrets import PrefectSecret
 
-DarkSkiesKey = Secret("DARK"),
-kUser = Secret("KASAUSER"),
-kSecret = Secret("KASASECRET")
+DarkSkiesKey = PrefectSecret("DARK"),
+kUser = PrefectSecret("KASAUSER"),
+kSecret = PrefectSecret("KASASECRET")
 
 # handler=jira_notifier(only_states=[Failed], options={'project': 'TEST', 'issuetype': {'name': 'Task'}, 'description': "Is it still working?"}, assignee='jhg.burner')
 
@@ -20,12 +20,14 @@ handler = gmail_notifier(only_states=[Failed])
 
 @task(name="token", slug="token")
 def getKasaToken(kUser, kSecret):
+    kUser2 = ''.join(kUser)
+    kSecret2 = ''.join(kSecret)
     payload = {
         "method": "login",
         "params": {
             "appType": "Kasa_Android",
-            "cloudUserName": kUser,
-            "cloudPassword": kSecret,
+            "cloudUserName": kUser2,
+            "cloudPassword": kSecret2,
             "terminalUUID": str(uuid.uuid4()),
         },
     }
@@ -44,7 +46,6 @@ def getKasaDeviceList(token):
     )
 
     deviceID = device_list.json()["result"]["deviceList"]  # [0]['deviceId']
-    # print(deviceID[0]['deviceId'])
     return deviceID
 
 
@@ -62,7 +63,6 @@ def modifyKasaDeviceState(token, deviceID, deviceState):
     response = requests.post(
         url="https://use1-wap.tplinkcloud.com/?token={}".format(token), json=payload
     )
-    print(response.json())
 
 
 @task(name="target", slug="target")
@@ -75,18 +75,18 @@ def targetACState(local_temp, maxTemp):
 
 @task(name="getTemp", slug="getTemp")
 def getTemp(lat, long, apiK):
-    forecast = "https://api.darksky.net/forecast/{}/{},{}".format(apiK, lat, long)
+    apiK2 = ''.join(apiK)
+    forecast = "https://api.darksky.net/forecast/{}/{},{}".format(apiK2, lat, long)
     data = requests.get(url=forecast)
-    json_response = data.json()
-    u = json_response[u"hourly"][u"data"]
-    temp = u[0][u"temperature"]
-    print("temp", temp)
+    json_response = data.json()  
+    u = json_response["hourly"]["data"]
+    temp = u[0]["temperature"]
     return temp
 
 
-# simpleSchedule = IntervalSchedule(interval=timedelta(minutes=120))
+simpleSchedule = IntervalSchedule(interval=timedelta(minutes=120))
 
-with Flow("TempAC", state_handlers=[handler]) as flow:
+with Flow("TempAC", state_handlers=[handler], schedule=simpleSchedule) as flow:
     maxtemp = Parameter("maxtemp", default=90)
     local_temp = getTemp(40.7135, -73.9859, DarkSkiesKey)
     target_state = targetACState(local_temp, maxtemp)
