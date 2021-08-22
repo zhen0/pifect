@@ -1,5 +1,6 @@
 from prefect import task, Flow, Parameter, prefect
 import time
+from prefect.storage import Github
 
 @task
 def sleep(x):
@@ -21,3 +22,4 @@ with Flow(name='Params') as flow:
 
 # flow.run()
 flow.register('Jenny')
+flow.storage = GitHub(repo="pifect", path="/src/parameters.py", access_token_secret="GH-Jen")
