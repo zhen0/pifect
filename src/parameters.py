@@ -22,4 +22,4 @@ with Flow(name='Params') as flow:
 
 # flow.run()
 flow.register('Jenny')
-flow.storage = GitHub(repo="pifect", path="/src/parameters.py")
+flow.storage = GitHub(repo="pifect", path="/src/parameters.py", access_token_secret="GH-Jen")
