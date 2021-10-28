@@ -1,4 +1,5 @@
 from prefect import task, Flow, Parameter
+from prefect.storage import GitHub
 # from prefect.engine.signals import FAIL
 import time
 # from prefect.run_configs import ECSRun
