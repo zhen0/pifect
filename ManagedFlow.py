@@ -6,7 +6,7 @@ import time
 @task(tags=['jen'])
 def say_hi(user_name: str):
     time.sleep(20)
-    print("Hello %s!", user_name)
+    print("Hello", user_name)
 
 
 @flow(log_prints=True)
