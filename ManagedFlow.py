@@ -5,12 +5,11 @@ import time
 
 @task(tags=['jen'])
 def say_hi(user_name: str):
-    logger = get_run_logger()
     time.sleep(20)
-    logger.info("Hello %s!", user_name)
+    print("Hello %s!", user_name)
 
 
-@flow
+@flow(log_prints=True)
 def hello(user: str = "world"):
     say_hi(user)
 

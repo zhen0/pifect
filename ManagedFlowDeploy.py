@@ -1,4 +1,4 @@
-from managedFlow import hello
+from ManagedFlow import hello
 from prefect.deployments import Deployment
 from prefect.filesystems import GitHub
 
