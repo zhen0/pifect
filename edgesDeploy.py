@@ -1,4 +1,4 @@
-from hedges import edges
+from edges import edges
 from prefect.deployments import Deployment
 from prefect.filesystems import GitHub
 
