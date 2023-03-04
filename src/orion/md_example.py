@@ -8,7 +8,7 @@ def hi():
 
 deployment = Deployment.build_from_flow(
     flow=hi,
-    name="prefect-example-deployment",
+    name="prefect-markdown-deployment",
     description="# My Depoyment with a markdown header ```some code``` some text and a link [link](https://www.google.com)"
 )
 

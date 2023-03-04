@@ -17,5 +17,3 @@ def hello(user: str = "world"):
 
 
 
-if __name__ == "__main__":
-    hello()
