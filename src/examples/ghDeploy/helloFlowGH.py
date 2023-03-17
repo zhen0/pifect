@@ -3,16 +3,16 @@ from prefect import task, flow
 import time
 
 
-@task(tags=['blue'])
+@task(tags=['blue'], persist_result=True)
 def say_hi(user_name: str):
-    logger = get_run_logger()
     time.sleep(20)
-    logger.info("Hello %s!", user_name)
+    return user_name
 
 
 @flow
-def hello(user: str = "world"):
+def hello(user: str = "world", persist_result=True):
     say_hi(user)
+    return 'blue'
 
 
 
